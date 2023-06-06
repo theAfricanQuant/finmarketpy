@@ -20,7 +20,7 @@ market = Market(market_data_generator=MarketDataGenerator())
 run_example = 0
 
 ###### fetch data from Quandl for BoE rate (using Bloomberg data)
-if run_example == 1 or run_example == 0:
+if run_example in {1, 0}:
     # Monthly average of UK resident monetary financial institutions' (excl. Central Bank) sterling
     # Weighted average interest rate, other loans, new advances, on a fixed rate to private non-financial corporations (in percent)
     # not seasonally adjusted

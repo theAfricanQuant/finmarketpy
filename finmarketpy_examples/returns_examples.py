@@ -26,7 +26,7 @@ market = Market(market_data_generator=MarketDataGenerator())
 run_example = 0
 
 ###### use PyFolio to analyse gold's return properties
-if run_example == 1 or run_example == 0:
+if run_example in {1, 0}:
     md_request = MarketDataRequest(
                 start_date = "01 Jan 1996",                         # start date
                 data_source = 'bloomberg',                          # use Bloomberg as data source
