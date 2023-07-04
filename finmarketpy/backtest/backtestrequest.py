@@ -334,7 +334,7 @@ class BacktestRequest(MarketDataRequest):
     def asset(self, asset):
         valid_asset = ['fx', 'multi-asset']
 
-        if not asset in valid_asset:
+        if asset not in valid_asset:
             LoggerManager().getLogger(__name__).warning(asset & " is not a defined asset.")
 
         self.__asset = asset
@@ -346,7 +346,7 @@ class BacktestRequest(MarketDataRequest):
     def instrument(self, instrument):
         valid_instrument = ['spot', 'futures', 'options']
 
-        if not instrument in valid_instrument:
+        if instrument not in valid_instrument:
             LoggerManager().getLogger(__name__).warning(instrument & " is not a defined trading instrument.")
 
         self.__instrument = instrument

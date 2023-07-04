@@ -96,11 +96,7 @@ class TradingModelFXTrend_Example(TradingModel):
         full_bkt    = ['EURUSD', 'USDJPY', 'GBPUSD', 'AUDUSD', 'USDCAD',
                        'NZDUSD', 'USDCHF', 'USDNOK', 'USDSEK']
 
-        basket_dict = {}
-
-        for i in range(0, len(full_bkt)):
-            basket_dict[full_bkt[i]] = [full_bkt[i]]
-
+        basket_dict = {full_bkt[i]: [full_bkt[i]] for i in range(0, len(full_bkt))}
         basket_dict['FX trend'] = full_bkt
 
         br = self.load_parameters(br = br)
@@ -134,9 +130,7 @@ class TradingModelFXTrend_Example(TradingModel):
         spot_df = asset_df
         spot_df2 = None
 
-        # asset_df
-
-        return asset_df, spot_df, spot_df2, basket_dict
+        return spot_df, spot_df, spot_df2, basket_dict
 
     def construct_signal(self, spot_df, spot_df2, tech_params, br, run_in_parallel=False):
 
@@ -146,9 +140,7 @@ class TradingModelFXTrend_Example(TradingModel):
         # (we could obviously create whatever function we wanted for generating the signal dataframe)
         tech_ind = TechIndicator()
         tech_ind.create_tech_ind(spot_df, 'SMA', tech_params);
-        signal_df = tech_ind.get_signal()
-
-        return signal_df
+        return tech_ind.get_signal()
 
     def construct_strategy_benchmark(self):
 
@@ -173,71 +165,51 @@ class TradingModelFXTrend_Example(TradingModel):
 
 if __name__ == '__main__':
 
-# just change "False" to "True" to run any of the below examples
+    model = TradingModelFXTrend_Example()
 
-    # create a FX trend strategy then chart the returns, leverage over time
-    if True:
-        model = TradingModelFXTrend_Example()
+    model.construct_strategy()
 
-        model.construct_strategy()
+    model.plot_strategy_pnl()                        # plot the final strategy
+    model.plot_strategy_leverage()                   # plot the leverage of the portfolio
+    model.plot_strategy_group_pnl_trades()           # plot the individual trade P&Ls
+    model.plot_strategy_group_benchmark_pnl()        # plot all the cumulative P&Ls of each component
+    model.plot_strategy_group_benchmark_pnl_ir()     # plot all the IR of individual components
+    model.plot_strategy_group_leverage()             # plot all the individual leverages
 
-        model.plot_strategy_pnl()                        # plot the final strategy
-        model.plot_strategy_leverage()                   # plot the leverage of the portfolio
-        model.plot_strategy_group_pnl_trades()           # plot the individual trade P&Ls
-        model.plot_strategy_group_benchmark_pnl()        # plot all the cumulative P&Ls of each component
-        model.plot_strategy_group_benchmark_pnl_ir()     # plot all the IR of individual components
-        model.plot_strategy_group_leverage()             # plot all the individual leverages
+    from finmarketpy.backtest import TradeAnalysis
 
-        from finmarketpy.backtest import TradeAnalysis
+    ta = TradeAnalysis()
 
-        ta = TradeAnalysis()
+    # create statistics for the model returns using both finmarketpy and pyfolio
+    ta.run_strategy_returns_stats(model, engine='finmarketpy')
+    strategy = TradingModelFXTrend_Example()
 
-        # create statistics for the model returns using both finmarketpy and pyfolio
-        ta.run_strategy_returns_stats(model, engine='finmarketpy')
-        # ta.run_strategy_returns_stats(model, engine='pyfolio')
+    from finmarketpy.backtest import TradeAnalysis
 
-        # model.plot_strategy_group_benchmark_annualised_pnl()
+    ta = TradeAnalysis()
+    ta.run_strategy_returns_stats(model, engine='finmarketpy')
 
-    # create a FX CTA strategy, then examine how P&L changes with different vol targeting
-    # and later transaction costs
-    if True:
-        strategy = TradingModelFXTrend_Example()
+    # which backtesting parameters to change
+    # names of the portfolio
+    # broad type of parameter name
+    parameter_list = [
+        {'portfolio_vol_adjust': True, 'signal_vol_adjust' : True},
+        {'portfolio_vol_adjust': False, 'signal_vol_adjust' : False}]
 
-        from finmarketpy.backtest import TradeAnalysis
+    pretty_portfolio_names = \
+        ['Vol target',
+         'No vol target']
 
-        ta = TradeAnalysis()
-        ta.run_strategy_returns_stats(model, engine='finmarketpy')
+    parameter_type = 'vol target'
 
-        # which backtesting parameters to change
-        # names of the portfolio
-        # broad type of parameter name
-        parameter_list = [
-            {'portfolio_vol_adjust': True, 'signal_vol_adjust' : True},
-            {'portfolio_vol_adjust': False, 'signal_vol_adjust' : False}]
+    ta.run_arbitrary_sensitivity(strategy,
+                                 parameter_list=parameter_list,
+                                 pretty_portfolio_names=pretty_portfolio_names,
+                                 parameter_type=parameter_type)
 
-        pretty_portfolio_names = \
-            ['Vol target',
-             'No vol target']
+    # now examine sensitivity to different transaction costs
+    tc = [0, 0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2.0]
+    ta.run_tc_shock(strategy, tc=tc)
 
-        parameter_type = 'vol target'
-
-        ta.run_arbitrary_sensitivity(strategy,
-                                     parameter_list=parameter_list,
-                                     pretty_portfolio_names=pretty_portfolio_names,
-                                     parameter_type=parameter_type)
-
-        # now examine sensitivity to different transaction costs
-        tc = [0, 0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2.0]
-        ta.run_tc_shock(strategy, tc=tc)
-
-        # how does P&L change on day of month
-        ta.run_day_of_month_analysis(strategy)
-
-    # create a FX CTA strategy then use TradeAnalysis (via pyfolio) to analyse returns
-    if False:
-        from finmarketpy.backtest import TradeAnalysis
-        model = TradingModelFXTrend_Example()
-        model.construct_strategy()
-
-        tradeanalysis = TradeAnalysis()
-        tradeanalysis.run_strategy_returns_stats(strategy)
+    # how does P&L change on day of month
+    ta.run_day_of_month_analysis(strategy)

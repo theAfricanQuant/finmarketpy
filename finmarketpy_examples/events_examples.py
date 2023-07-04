@@ -18,8 +18,7 @@ from finmarketpy.economics import EventStudy
 run_example = 0
 
 ###### download recent NFP times and do event study for USD/JPY (using Bloomberg data)
-if run_example == 1 or run_example == 0:
-
+if run_example in {1, 0}:
     logger = LoggerManager().getLogger(__name__)
 
     import datetime

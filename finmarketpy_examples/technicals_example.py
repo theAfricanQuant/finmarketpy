@@ -23,7 +23,7 @@ tech_ind = TechIndicator()
 run_example = 0
 
 ###### fetch data from Quandl for BoE rate (using Bloomberg data)
-if run_example == 1 or run_example == 0:
+if run_example in {1, 0}:
 
     # downloaded S&P500
     md_request = MarketDataRequest(

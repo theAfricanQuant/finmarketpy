@@ -65,11 +65,7 @@ class TradeAnalysis(object):
 
         """
 
-        if index is None:
-            pnl = trading_model.strategy_pnl()
-        else:
-            pnl = index
-
+        pnl = trading_model.strategy_pnl() if index is None else index
         tz = Timezone()
         calculations = Calculations()
 
@@ -193,11 +189,7 @@ class TradeAnalysis(object):
     def save_positions_trades(self, tm, signals, trades, signal_caption, trade_caption, writer):
         signals.to_excel(writer, sheet_name=tm.FINAL_STRATEGY + ' hist ' + signal_caption, engine='xlsxwriter')
 
-        if hasattr(tm, 'STRIP'):
-            strip = tm.STRIP
-        else:
-            strip = ''
-
+        strip = tm.STRIP if hasattr(tm, 'STRIP') else ''
         recent_signals = tm._grab_signals(signals, date=[-1, -2, -5, -10, -20], strip=strip)
         recent_trades = tm._grab_signals(trades, date=[-1, -2, -5, -10, -20], strip=strip)
 
@@ -208,7 +200,7 @@ class TradeAnalysis(object):
         if tc is None: tc = [0.0, 0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0]
 
         parameter_list = [{'spot_tc_bp': x} for x in tc]
-        pretty_portfolio_names = [str(x) + 'bp' for x in tc]  # names of the portfolio
+        pretty_portfolio_names = [f'{str(x)}bp' for x in tc]
         parameter_type = 'TC analysis'  # broad type of parameter name
 
         return self.run_arbitrary_sensitivity(strategy,
@@ -351,7 +343,7 @@ class TradeAnalysis(object):
 
         logger = LoggerManager().getLogger(__name__)
 
-        logger.info("Calculating... " + str(pretty_portfolio_name))
+        logger.info(f"Calculating... {str(pretty_portfolio_name)}")
 
         signal_df = trading_model.construct_signal(spot_df, spot_df2, br.tech_params, br, run_in_parallel=False)
 
@@ -362,7 +354,7 @@ class TradeAnalysis(object):
         stats = str(backtest.portfolio_pnl_desc()[0])
 
         port = backtest.portfolio_cum().resample('B').mean()
-        port.columns = [str(pretty_portfolio_name) + ' ' + stats]
+        port.columns = [f'{str(pretty_portfolio_name)} {stats}']
 
         return port, ret_stats
 

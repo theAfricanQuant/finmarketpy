@@ -60,7 +60,7 @@ class EventStudy(object):
 
         # set as New York time and select only those ON vols at the 10am NY cut just before the event
         data_frame_events = data_frame.ix[event_dates.index]
-        data_frame_events.columns = data_frame.columns.values + '-' + name + ' ' + event
+        data_frame_events.columns = f'{data_frame.columns.values}-{name} {event}'
 
         return data_frame_events
 
@@ -107,7 +107,9 @@ class EventStudy(object):
             try:
                 data_frame_rets.ix[start_index[i]:finish_index[i], 'Ind'] = ords
             except:
-                data_frame_rets.ix[start_index[i]:finish_index[i], 'Ind'] = ords[0:(finish_index[i] - start_index[i])]
+                data_frame_rets.ix[start_index[i] : finish_index[i], 'Ind'] = ords[
+                    : finish_index[i] - start_index[i]
+                ]
 
         # set the release dates
         data_frame_rets.ix[start_index,'Rel'] = ef_time                                         # set entry points
@@ -125,12 +127,11 @@ class EventStudy(object):
             calculations = Calculations()
             data_frame.ix[-minute_start + min_offset,:] = numpy.nan
             data_frame = calculations.create_mult_index(data_frame)
-        else:
-            if vol is True:
-                # annualise (if vol)
-                data_frame = data_frame.rolling(center=False,window=5).std() * math.sqrt(ann_factor)
-            elif cumsum:
-                data_frame = data_frame.cumsum()
+        elif vol is True:
+            # annualise (if vol)
+            data_frame = data_frame.rolling(center=False,window=5).std() * math.sqrt(ann_factor)
+        elif cumsum:
+            data_frame = data_frame.cumsum()
 
         return data_frame
 
@@ -138,7 +139,7 @@ class EventStudy(object):
             self, data_frame_cross_orig, ef_time_frame, cross, event_fx, event_name, start, end,
             offset_list = [1, 5, 30, 60], add_surprise = False, surprise_field = 'survey-average', freq = 'minutes'):
 
-        ticker = event_fx + "-" + event_name + ".release-date-time-full"
+        ticker = f"{event_fx}-{event_name}.release-date-time-full"
 
         data_frame_agg = None
         data_frame_cross_orig = data_frame_cross_orig.resample('T').mean()  # resample to minute freq - in case there are missing values
@@ -156,30 +157,31 @@ class EventStudy(object):
             col_dates = data_frame_cross.index[indices]
 
             col_rets = (data_frame_cross.iloc[indices].values) \
-                       / (data_frame_cross.iloc[indices_start].values) - 1
+                           / (data_frame_cross.iloc[indices_start].values) - 1
 
             mkt_moves = pandas.DataFrame(index=col_dates)
-            mkt_moves[cross + " " + str(offset) + "m move"] = col_rets
+            mkt_moves[f"{cross} {str(offset)}m move"] = col_rets
             mkt_moves.index.name = ticker
             mkt_moves.index = col_dates - timedelta(minutes=offset - 1)
 
             data_frame = ef_time_frame.join(mkt_moves, on=ticker, how="inner")
-            temp_index = data_frame[ticker]
-
-            spot_moves_list = []
-
             if data_frame_agg is None:
                 data_frame_agg = data_frame
             else:
-                label = cross + " " + str(offset) + "m move"
-                spot_moves_list.append(label)
+                label = f"{cross} {str(offset)}m move"
+                spot_moves_list = [label]
+
                 data_frame = data_frame[label]
+                temp_index = data_frame[ticker]
+
                 data_frame.index = temp_index
                 data_frame_agg = data_frame_agg.join(data_frame, on=ticker, how="inner")
 
         if add_surprise == True:
-            data_frame_agg[event_fx + "-" + event_name + ".surprise"] = data_frame_agg[event_fx + "-" + event_name + ".actual-release"] \
-                               - data_frame_agg[event_fx + "-" + event_name + "." + surprise_field]
+            data_frame_agg[f"{event_fx}-{event_name}.surprise"] = (
+                data_frame_agg[f"{event_fx}-{event_name}.actual-release"]
+                - data_frame_agg[f"{event_fx}-{event_name}.{surprise_field}"]
+            )
 
         return data_frame_agg
 
@@ -305,26 +307,10 @@ class EventsFactory(EventStudy):
         return data_frame
 
     def get_economic_event_date_time_fields(self, fields, name, event = None):
-        ### acceptible fields
-        # observation-date <- observation time for the index
-        # actual-release
-        # survey-median
-        # survey-average
-        # survey-high
-        # survey-low
-        # survey-high
-        # number-observations
-        # release-dt
-        # release-date-time-full
-        # first-revision
-        # first-revision-date
-
-        ticker = []
-
-        # construct tickers of the form USD-US Employees on Nonfarm Payrolls Total MoM Net Change SA.actual-release
-        for i in range(0, len(fields)):
-            ticker.append(self.create_event_desciptor_field(name, event, fields[i]))
-
+        ticker = [
+            self.create_event_desciptor_field(name, event, fields[i])
+            for i in range(0, len(fields))
+        ]
         # index on the release-dt field eg. 20101230 (we shall convert this later)
         ticker_index = self.create_event_desciptor_field(name, event, "release-dt")
 
@@ -343,7 +329,7 @@ class EventsFactory(EventStudy):
         event_date_time_frame.index = date_time_dt
 
         ######## grab event date/fields
-        self._econ_data_frame[name + ".observation-date"] = self._econ_data_frame.index
+        self._econ_data_frame[f"{name}.observation-date"] = self._econ_data_frame.index
         data_frame = self._econ_data_frame[ticker]
 
         data_frame.index = self._econ_data_frame[ticker_index]
@@ -360,7 +346,7 @@ class EventsFactory(EventStudy):
 
         # HACK! certain events need an offset because BBG have invalid dates
         if ticker_index in self._offset_events:
-             data_frame.index = data_frame.index + timedelta(days=self._offset_events[ticker_index])
+            data_frame.index += timedelta(days=self._offset_events[ticker_index])
 
         ######## join together event dates/date-time/fields in one data frame
         data_frame = event_date_time_frame.join(data_frame, how='inner')
@@ -370,10 +356,7 @@ class EventsFactory(EventStudy):
         return data_frame
 
     def create_event_desciptor_field(self, name, event, field):
-        if event is None:
-            return name + "." + field
-        else:
-            return name + "-" + event + "." + field
+        return f"{name}.{field}" if event is None else f"{name}-{event}.{field}"
 
     def get_all_economic_events_date_time(self):
         event_names = self.get_all_economic_events()
@@ -501,7 +484,7 @@ class HistEconDataFactory(object):
             vendor_ticker = list(self._all_econ_tickers[
                                          self._all_econ_tickers["Full Code"] == pretty_ticker][source].values)
 
-            if vendor_ticker == []:
+            if not vendor_ticker:
                 vendor_ticker = None
                 self.logger.error('Could not find match for ' + pretty_ticker)
             else:
@@ -509,10 +492,7 @@ class HistEconDataFactory(object):
 
             vendor_tickers.append(vendor_ticker)
 
-        vendor_fields = ['close']
-
-        if source == 'bloomberg': vendor_fields = ['PX_LAST']
-
+        vendor_fields = ['PX_LAST'] if source == 'bloomberg' else ['close']
         md_request = MarketDataRequest(
                 start_date = start_date,                            # start date
                 finish_date = finish_date,                          # finish date
@@ -538,7 +518,15 @@ class HistEconDataFactory(object):
         countries = [x.split('-', 1)[0] for x in countries]
 
         df['Code'] = sum(
-            [list(self._econ_country_codes[self._econ_country_codes["Country"] == x]['Code']) for x in countries],
-            [])
+            (
+                list(
+                    self._econ_country_codes[
+                        self._econ_country_codes["Country"] == x
+                    ]['Code']
+                )
+                for x in countries
+            ),
+            [],
+        )
 
         return df

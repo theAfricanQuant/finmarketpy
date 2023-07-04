@@ -23,7 +23,9 @@ class BacktestComparison(object):
         :param models: iterable of TradingModel instances.
         :param ref_index: index of the reference model in the list (for difference).
         """
-        if hasattr(models, "__iter__") and all([isinstance(x, TradingModel) for x in models]):
+        if hasattr(models, "__iter__") and all(
+            isinstance(x, TradingModel) for x in models
+        ):
             self.models = models
             self.ref_index = ref_index
         else:

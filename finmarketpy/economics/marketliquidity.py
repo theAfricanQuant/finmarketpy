@@ -50,6 +50,3 @@ class MarketLiquidity(object):
 
         return data_frame_tick_count
 
-if __name__ == '__main__':
-    # see examples
-    pass
